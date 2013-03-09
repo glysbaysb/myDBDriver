@@ -51,7 +51,7 @@ public class BlobField extends Field {
          */
         byte[] paddedValue = new byte[this.size];
         System.arraycopy(compareByteValue, 0, paddedValue, 0, compareByteValue.length);
-        
+
         return Arrays.equals(byteValue, paddedValue);
     }
     
@@ -64,4 +64,44 @@ public class BlobField extends Field {
     public String GetType() {
         return cfg.blobType;
     }    
+    
+    @Override   
+    public boolean compareGreater(Object value) {
+       byte[] compareByteValue = (byte[])value;
+        /* As we don't support variable sized datatypes yet
+         * all blobs are padded up to this.size with 0s.
+         * The comparsion value probably isn't -> Create a temp array sized 
+         * this.size (prefilled with 0) and copy value into it
+         */
+        byte[] paddedValue = new byte[this.size];
+        System.arraycopy(compareByteValue, 0, paddedValue, 0, compareByteValue.length);
+        
+        for(int i = 0; i < paddedValue.length; i++) {
+            if(paddedValue[i] > byteValue[i])
+                return true;
+        }
+            
+        // If they are equal the requirement is not met
+        return false;
+    }
+    
+    @Override
+    public boolean compareLower(Object value) {
+        byte[] compareByteValue = (byte[])value;
+        /* As we don't support variable sized datatypes yet
+         * all blobs are padded up to this.size with 0s.
+         * The comparsion value probably isn't -> Create a temp array sized 
+         * this.size (prefilled with 0) and copy value into it
+         */
+        byte[] paddedValue = new byte[this.size];
+        System.arraycopy(compareByteValue, 0, paddedValue, 0, compareByteValue.length);
+        
+        for(int i = 0; i < paddedValue.length; i++) {
+            if(paddedValue[i] < byteValue[i])
+                return true;
+        }
+            
+        // If they are equal the requirement is not met
+        return false;
+    }
 }

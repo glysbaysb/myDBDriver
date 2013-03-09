@@ -4,8 +4,6 @@
  */
 package myDBDriver;
 
-import java.util.Arrays;
-
 /**
  *
  * @author 5.7.2012
@@ -38,4 +36,6 @@ public abstract class Field {
     public abstract Object GetValue();
     
     public abstract boolean compare(Object value);
+    public abstract boolean compareGreater(Object value);
+    public abstract boolean compareLower(Object value);
 }

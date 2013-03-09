@@ -185,16 +185,52 @@ public class Table {
         System.out.println(")");
     }
     
-    // Todo: Allow for compare function (==, >=, <= , !=, '%a%')
-    public List<Record> Query(String fieldName, Object expectedValue) {
+    public boolean CompareSuccess(Field f, Object compareValue, String compareFunction) {
+        // switch(String) only in 1.7
+        if(cfg.compareEqual.equals(compareFunction)) {
+            return f.compare(compareValue);
+        } else if(cfg.compareNotEqual.equals(compareFunction)) {
+            return !f.compare(compareValue);
+        } else if(cfg.compareGreater.equals(compareFunction)) {
+            return f.compareGreater(compareValue);
+        } else if(cfg.compareGreaterEqual.equals(compareFunction)) {
+            return f.compare(compareValue) || f.compareGreater(compareValue);
+        } else if(cfg.compareLower.equals(compareFunction)) {
+            return f.compareLower(compareValue);
+        } else if(cfg.compareLowerEqual.equals(compareFunction)) {
+            return f.compare(compareValue) || f.compareLower(compareValue);
+        }
+        return false;
+    }
+    
+    public List<Record> Query(String fieldName, Object compareValue, 
+            String compareFunction) {
         List<Record> results = new ArrayList<Record>();
+        
+        if(!cfg.IsValidCompareFunction(compareFunction))
+            return results;
+        
         for(Record r : values) {
-            if(r.GetField(fieldName).compare(expectedValue)) {
+            if(CompareSuccess(r.GetField(fieldName), compareValue, compareFunction)) {
                 results.add(r);
             }
         }
         
         return results;
     }
- 
+    
+    public List<Record> Query(String fieldName, Object expectedValue) {
+        return Query(fieldName, expectedValue, cfg.compareEqual);
+    }
+    
+    public int GetNumberOfRecords() {
+        return values.size();
+    }
+    
+    public Record GetRecord(int i) {
+        if(i > values.size())
+            return null;
+        
+        return values.get(i);
+    }
 }

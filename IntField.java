@@ -40,4 +40,14 @@ public class IntField extends Field  {
     public String GetType() {
         return cfg.intType;
     }
+    
+    @Override   
+    public boolean compareGreater(Object value) {
+       return intValue > Integer.parseInt(value.toString()); 
+    }
+    
+    @Override
+    public boolean compareLower(Object value) {
+        return intValue < Integer.parseInt(value.toString());
+    }
 }
