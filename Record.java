@@ -12,6 +12,7 @@ import java.util.List;
  * @author g.ijewski
  */
 public class Record {
+    private Config cfg = Config.GetInstance();
     private List<Field> fields = new ArrayList<Field>();
     
     public void AddField(String name, int value) {
@@ -20,10 +21,8 @@ public class Record {
         fields.add(f);      
     }
     
-    public void AddField(String name, int size, byte[] value) {        
-        Field f = new BlobField(name, size, value);
-        
-        fields.add(f);
+    public void AddField(String name, int size, byte[] value) {  
+        fields.add(new BlobField(name, size, value));
     } 
     
     public int GetNumberOfFields() {
@@ -32,7 +31,8 @@ public class Record {
     
     public byte[] GetBlobField(String name){      
       for(Field f : fields) {
-          if(f.equals(name, "blob")) {
+          // Correct name and Correct type?
+          if(f.equals(name, cfg.blobType)) {
               return (byte[])f.GetValue();
           }
       }      
@@ -41,7 +41,8 @@ public class Record {
     
     public int GetIntField(String name){       
       for(Field f : fields) {
-          if(f.equals(name, "int")) {
+          // Right name and right type?
+          if(f.equals(name, cfg.intType)) {
               return Integer.parseInt(f.GetValue().toString());
           }
       }        
@@ -50,7 +51,7 @@ public class Record {
     
     public Object GetFieldValue(String name) {
       for(Field f : fields) {
-          if(f.GetName().equals(name))
+          if(f.GetName().equalsIgnoreCase(name))
               return f.GetValue();
       }        
       return null;  
@@ -58,8 +59,10 @@ public class Record {
     
     public Field GetField(String name) {
       for(Field f : fields) {
-          if(f.GetName().equals(name))
+          if(f.GetName().equalsIgnoreCase(name))
+          {
               return f;
+          }
       }        
       return null;  
     }

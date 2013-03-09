@@ -13,6 +13,7 @@ import java.util.List;
  * @author 5.7.2012
  */
 public class Table {
+    private Config cfg = Config.GetInstance();
     private String filename;
     // Used to find out the type of each field
     private List<Field> fields = new ArrayList<Field>();
@@ -20,9 +21,7 @@ public class Table {
     private List<Record> values = new ArrayList<Record>();
     
     private boolean tableInitalized = false;
-    private final String fieldDelimiter = ";",
-                         otherDelimitier = ":";
-    
+
     public Table(String filename) throws Exception {
       this.filename = filename;
        
@@ -51,12 +50,78 @@ public class Table {
       }   
     } 
 
+    public void AddRecord(Record r) {
+        tableInitalized = true; // No changes can be made
+        values.add(r);
+    }
+    
+    public void AddIntField(String name) throws Exception {
+        if(this.tableInitalized)
+            throw new IllegalThreadStateException("Table already defined");
+        
+        this.fields.add(new IntField(name, 0));
+    }
+    
+    public void AddBlobField(int size, String name) throws Exception {
+        if(this.tableInitalized)
+            throw new IllegalThreadStateException("Table already defined");       
+        this.fields.add(new BlobField(name, size, null));
+    }    
+
+    
+    private void ReadLayout(RandomAccessFile o) throws Exception {
+        try {          
+            // Stops at cfg.layoutTerminator
+            String fieldLayout = o.readLine();
+
+            String[] unparsedFields = fieldLayout.split(cfg.fieldDelimiter);      
+            for(String singleField : unparsedFields) {
+                String name = singleField.substring(0, singleField.indexOf(cfg.typeDelimitier));
+                String type = singleField.substring(singleField.indexOf(cfg.typeDelimitier) + 1);       
+                
+                // Is a blob (A blob has the size at the end -> use startsWith)
+                if(type.startsWith(cfg.blobType)) {
+                    String sizeAsString = 
+                            type.substring(type.indexOf(cfg.blobSizeStart) + 1, type.indexOf(cfg.blobSizeEnd));
+                    fields.add(new BlobField(name, Integer.parseInt(sizeAsString), null));
+                }
+                else {
+                    Field f = new IntField(name, 0);
+                    fields.add(f);
+                }
+            }
+        }
+        catch(Exception e)
+        {
+            throw e;
+        }
+    }
+        
+    private void WriteLayout(RandomAccessFile o) throws Exception {
+        try {        
+            // Writes the number of records
+            o.writeInt(values.size());
+            // Write the layout as a string
+            for(Field f : fields) {                                  
+                o.writeBytes(f.GetName() + cfg.typeDelimitier + f.GetType());                                   
+                if(cfg.blobType.equals(f.GetType())) {
+                    o.writeBytes(cfg.blobSizeStart + f.GetSize() + cfg.blobSizeEnd);
+                }
+                o.writeBytes(cfg.fieldDelimiter);
+            }
+            o.writeBytes(cfg.layoutTerminator);
+        }
+        catch(Exception e) {
+            throw e;
+        }
+    }
+
     private void ReadData(RandomAccessFile o, int numberOfValues) throws Exception {
         for(int i = 0; i < numberOfValues; i++) {
             Record r = new Record();
             
             for(Field f : fields) {
-                if(f.GetType().equalsIgnoreCase("int")) {
+                if(f.GetType().equals(cfg.intType)) {
                     r.AddField(f.GetName(), o.readInt());
                 }
                 else {
@@ -70,79 +135,12 @@ public class Table {
         }        
     }
     
-    private void ReadLayout(RandomAccessFile o) throws Exception {
-        try {          
-            String fieldLayout = o.readLine();
-
-            String[] unparsedFields = fieldLayout.split(fieldDelimiter);      
-            for(String singleField : unparsedFields) {
-                String name = singleField.substring(0, singleField.indexOf(otherDelimitier));
-                String type = singleField.substring(singleField.indexOf(otherDelimitier) + 1);       
-                
-                // Is a blob
-                if(type.contains("(")) {
-                    String sizeAsString = 
-                            type.substring(type.indexOf("(") + 1, type.indexOf(")"));
-                    Field f = new BlobField(name, Integer.parseInt(sizeAsString));
-                    fields.add(f);
-                }
-                else {
-                    Field f = new IntField(name, 0);
-                    fields.add(f);
-                }
-            }
-        }
-        catch(Exception e)
-        {
-            throw e;
-        }
-    }
-    
-    public void AddRecord(Record r) {
-        values.add(r);
-    }
-    
-    public void AddIntField(String name) throws Exception {
-        if(this.tableInitalized)
-            throw new IllegalThreadStateException("Table already defined");
-        
-        Field f = new IntField(name, 0);
-        this.fields.add(f);
-    }
-    
-    public void AddBlobField(int size, String name) throws Exception {
-        if(this.tableInitalized)
-            throw new IllegalThreadStateException("Table already defined");       
-        Field f = new BlobField(name, size, null);
-        this.fields.add(f);
-    }    
-    
-    private void WriteLayout(RandomAccessFile o) throws Exception {
-        try {        
-            // Writes the number of records
-            o.writeInt(values.size());
-            // Write the layout as a string
-            for(Field f : fields) {                                  
-                o.writeBytes(f.GetName() + ":" + f.GetType());                                   
-                if(0 == f.GetType().compareToIgnoreCase("blob")) {
-                    o.writeBytes("(" + f.GetSize() + ")");
-                }
-                o.writeBytes(";");
-            }
-            // Terminate layout
-            o.writeBytes("\n");
-        }
-        catch(Exception e) {
-            throw e;
-        }
-    }
-
-    private void WriteRecords(RandomAccessFile o) throws Exception {
+    private void WriteData(RandomAccessFile o) throws Exception {
         try {           
             for(Record r : values) {
                 // iterate over fields
                 for(Field f : fields) {
-                    if(f.GetType().equals("blob")) {
+                    if(f.GetType().equals(cfg.blobType)) {
                         byte[] val = r.GetBlobField(f.GetName());
                         o.write(val);
                     }
@@ -161,11 +159,11 @@ public class Table {
    
     public void FlushTable() throws Exception{
         try {
-            RandomAccessFile o = new RandomAccessFile( this.filename, "rws" );
             tableInitalized = true; // No changes can be made
+            RandomAccessFile o = new RandomAccessFile( this.filename, "rws" );
             
             WriteLayout(o);
-            WriteRecords(o);
+            WriteData(o);
             
             o.close();
         }
@@ -177,7 +175,7 @@ public class Table {
     public void PrintTableLayout() {
         System.out.println("CREATE TABLE (");
         for(Field f : fields) {
-            if(f.GetType().equals("blob")) {
+            if(f.GetType().equals(cfg.blobType)) {
                 System.out.println(f.GetName() + " blob(" + f.GetSize() + "),");
             }
             else {

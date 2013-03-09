@@ -11,19 +11,14 @@ import java.util.Arrays;
  * @author 5.7.2012
  */
 public class BlobField extends Field {
+    private Config cfg = Config.GetInstance();
     private byte[] byteValue;
     
-    BlobField(String name, int size) {
-        this.name = name;
-        this.type = "blob";        
-        this.size = size;
-        
-        byteValue = new byte[size];
-    }
-     
+    /*
+     * @param value: You may pass null.
+     */
     BlobField(String name, int size, byte[] value) {
-        this.name = name;
-        this.type = "blob";        
+        this.name = name;       
         this.size = size;
         
         byteValue = new byte[size];
@@ -42,7 +37,7 @@ public class BlobField extends Field {
          * The data may be bigger than the space so we check for that
          * arraycopy is used (instead of clone or smth) to not resize the array
          */
-        int bytesToCopy = (size > newByteValue.length ? newByteValue.length : size);
+        int bytesToCopy = Math.min(size, newByteValue.length);
         System.arraycopy(newByteValue, 0, this.byteValue, 0, bytesToCopy);
     }
     
@@ -64,4 +59,9 @@ public class BlobField extends Field {
     public Object GetValue() {
         return byteValue;
     }
+    
+    @Override
+    public String GetType() {
+        return cfg.blobType;
+    }    
 }

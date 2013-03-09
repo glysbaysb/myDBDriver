@@ -9,19 +9,16 @@ package myDBDriver;
  * @author 5.7.2012
  */
 public class IntField extends Field  {
+    private Config cfg = Config.GetInstance();
     private int    intValue;
     
     IntField(String name, int val) {
         this.name = name;
         intValue = val;
-        
-        type = "int";
     }
     
     IntField(String name) {
-        this.name = name;
-        
-        type = "int";        
+        this.name = name;      
     }
     
     @Override
@@ -37,5 +34,10 @@ public class IntField extends Field  {
     @Override
     public boolean compare(Object value) {
         return intValue == Integer.parseInt(value.toString());
+    }
+    
+    @Override
+    public String GetType() {
+        return cfg.intType;
     }
 }

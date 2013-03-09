@@ -12,8 +12,7 @@ import java.util.Arrays;
  */
 public abstract class Field {
     protected String name;
-    // This cannot be changed once set
-    protected String type;
+    
     protected int    size;
 
     public String GetName() {
@@ -28,13 +27,11 @@ public abstract class Field {
         return size;
     }
 
-    public String GetType() {
-        return type;
-    }
+    public abstract String GetType();
 
     public boolean equals(String name, String type) {
        return this.name.equalsIgnoreCase(name) && 
-                this.type.equalsIgnoreCase(type);
+                this.GetType().equals(type);
     }
     
     public abstract void SetValue(Object value);
